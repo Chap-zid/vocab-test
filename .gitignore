@@ -1,0 +1,11 @@
+# 원본 상업 교재 데이터 (저작권) — 사이트에 불필요
+워드마스터수능2000.CSV
+*.CSV
+
+# 내부 도구 설정
+.claude/
+
+# OS / OneDrive 잡파일
+Thumbs.db
+desktop.ini
+.DS_Store

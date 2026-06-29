@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>영어 단어 테스트</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="card">
+
+    <!-- 설정 화면 -->
+    <section id="setup" class="screen">
+      <h1>영어 단어 테스트</h1>
+
+      <div class="field">
+        <label>Day 범위</label>
+        <div class="row">
+          <select id="startDay" aria-label="시작 Day"></select>
+          <span class="tilde">~</span>
+          <select id="endDay" aria-label="끝 Day"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>문제 수</label>
+        <div class="row" id="countButtons">
+          <button type="button" class="count-btn" data-count="10">10</button>
+          <button type="button" class="count-btn" data-count="15">15</button>
+          <button type="button" class="count-btn" data-count="20">20</button>
+          <button type="button" class="count-btn" data-count="25">25</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="toggle">
+          <input type="checkbox" id="hintToggle">
+          <span>앞 두 글자 보기</span>
+        </label>
+      </div>
+
+      <p id="setupError" class="error" hidden></p>
+      <button type="button" id="startBtn" class="primary">테스트 시작</button>
+    </section>
+
+    <!-- 문제 화면 -->
+    <section id="quiz" class="screen" hidden>
+      <div class="progress">
+        <span id="progressText"></span>
+        <span id="scoreText"></span>
+      </div>
+      <p class="definition" id="definition"></p>
+      <p class="hint" id="hint" hidden></p>
+      <div class="choices" id="choices"></div>
+      <button type="button" id="nextBtn" class="primary" hidden>다음</button>
+    </section>
+
+    <!-- 결과 화면 -->
+    <section id="result" class="screen" hidden>
+      <h1>결과</h1>
+      <p class="score-big" id="resultScore"></p>
+      <p class="percent" id="resultPercent"></p>
+      <button type="button" id="restartBtn" class="primary">다시 시작</button>
+    </section>
+
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
