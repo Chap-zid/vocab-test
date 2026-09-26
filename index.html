@@ -27,11 +27,30 @@ button{cursor:pointer;touch-action:manipulation}
 .card{padding:22px 20px;min-height:350px;display:flex;flex-direction:column}
 .meta{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;margin-bottom:20px}
 .prompt{font-family:Georgia,"Times New Roman",serif;font-size:22px;line-height:1.8;font-weight:500;word-break:normal}
-.blank{display:inline-block;min-width:68px;border-bottom:2px solid #222;text-align:center;color:#a3a8ae;padding:0 3px;margin:0 2px}
-.answerBox{display:none;margin-top:22px;padding:18px;border-radius:14px;background:var(--answer);border:1px solid var(--line)}
-.answerBox.show{display:block}
-.answerTitle{font-size:12px;color:var(--muted);margin-bottom:7px}
-.answerText{font-family:Georgia,"Times New Roman",serif;font-size:20px;line-height:1.75}
+.tape{
+  display:inline-block;
+  position:relative;
+  padding:0 .12em;
+  margin:0 .035em;
+  border-radius:4px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,0) 40%),
+    repeating-linear-gradient(0deg,#d9d9d7 0,#d9d9d7 2px,#d4d4d2 2px,#d4d4d2 4px);
+  color:transparent;
+  text-shadow:none;
+  box-shadow:0 1px 2px rgba(0,0,0,.10), inset 0 0 0 1px rgba(0,0,0,.045);
+  cursor:pointer;
+  user-select:none;
+  transition:background .12s ease,color .12s ease,box-shadow .12s ease;
+}
+.tape:active{transform:translateY(1px)}
+.tape.revealed{
+  background:rgba(209,190,164,.16);
+  color:#9a6845;
+  box-shadow:inset 0 -2px 0 rgba(154,104,69,.18);
+  user-select:text;
+}
+
 .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:auto;padding-top:24px}
 .actions button{height:58px;font-size:16px;font-weight:700}
 .primary{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -54,7 +73,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 @media(max-width:650px){
   .controls{grid-template-columns:1fr 1fr}.controls select:first-child{grid-column:1/-1}
   .jumpRow{grid-template-columns:1fr}
-  .card{padding:18px 16px;min-height:430px}.prompt{font-size:20px;line-height:1.78}.answerText{font-size:18px}
+  .card{padding:18px 16px;min-height:430px}.prompt{font-size:20px;line-height:1.78}
   .actions{grid-template-columns:1fr 1fr}.actions .primary{grid-column:1/-1}
   .fullSentence{font-size:17px}.groupTitle{top:66px}
 }
@@ -103,11 +122,11 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 <option value="mock41">모의고사 41~42번</option>
 <option value="mock43">모의고사 43~45번</option></select>
     <select id="mode">
-      <option value="cloze30">빈칸 30%</option>
-      <option value="cloze50" selected>빈칸 50%</option>
-      <option value="cloze70">빈칸 70%</option>
-      <option value="initial">첫 글자만</option>
-      <option value="lead">앞부분만</option>
+      <option value="cloze30">테이프 30%</option>
+      <option value="cloze50" selected>테이프 50%</option>
+      <option value="cloze70">테이프 70%</option>
+      <option value="cloze85">테이프 85%</option>
+      <option value="cloze100">테이프 전체</option>
     </select>
     <select id="order">
       <option value="random">무작위</option>
@@ -120,16 +139,12 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <button id="fullBtn">원문 전체 보기</button>
   </div>
 
-  <div class="stats"><span id="count"></span> · 답을 누르면 원문만 표시됩니다.</div>
+  <div class="stats"><span id="count"></span> · 테이프를 누르면 해당 단어가 보입니다.</div>
 </div>
 
 <div class="card" id="card">
   <div class="meta"><span id="meta"></span><span id="pos"></span></div>
   <div class="prompt" id="prompt"></div>
-  <div class="answerBox" id="answerBox">
-    <div class="answerTitle">원문</div>
-    <div class="answerText" id="answerText"></div>
-  </div>
   <div class="actions">
     <button class="secondary" id="prevBtn">이전 문장</button>
     <button class="primary" id="answerBtn">답 보기</button>
@@ -137,7 +152,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   </div>
 </div>
 
-<div class="foot">문장 선택으로 원하는 위치로 바로 이동할 수 있습니다.</div>
+<div class="foot">테이프를 하나씩 누르거나, 답 보기를 눌러 한 번에 모두 확인할 수 있습니다.</div>
 </div>
 
 <dialog id="fullDialog">
@@ -181,21 +196,21 @@ function getPool(){
 
 function renderPrompt(item){
   const mode=$("#mode").value, ts=tokens(item.text);
-  if(mode.startsWith("cloze")){
-    const rate=Number(mode.replace("cloze",""))/100;
-    const inds=ts.map((t,i)=>/[\p{L}\p{N}]/u.test(t)?i:null).filter(i=>i!==null);
-    inds.sort(()=>Math.random()-.5);
-    const hide=new Set(inds.slice(0,Math.max(1,Math.round(inds.length*rate))));
-    return ts.map((t,i)=>hide.has(i)?'<span class="blank">_____</span>':esc(t))
-      .join(" ").replace(/\s+([,.;:!?])/g,"$1").replace(/([“‘(])\s+/g,"$1");
-  }
-  if(mode==="initial"){
-    return ts.map(t=>/[\p{L}\p{N}]/u.test(t)?esc(t[0])+'___':esc(t))
-      .join(" ").replace(/\s+([,.;:!?])/g,"$1").replace(/([“‘(])\s+/g,"$1");
-  }
-  const ws=item.text.split(/\s+/);
-  const n=Math.min(5,Math.max(2,Math.ceil(ws.length*.16)));
-  return esc(ws.slice(0,n).join(" ")+" …");
+  const rate=mode.startsWith("cloze") ? Number(mode.replace("cloze",""))/100 : .5;
+  const inds=ts.map((t,i)=>/[\p{L}\p{N}]/u.test(t)?i:null).filter(i=>i!==null);
+
+  inds.sort(()=>Math.random()-.5);
+  const count=Math.max(1,Math.round(inds.length*rate));
+  const hide=new Set(inds.slice(0,count));
+
+  return ts.map((t,i)=>{
+    if(hide.has(i)){
+      return `<span class="tape" role="button" tabindex="0" aria-label="가려진 단어">${esc(t)}</span>`;
+    }
+    return esc(t);
+  }).join(" ")
+    .replace(/\s+([,.;:!?])/g,"$1")
+    .replace(/([“‘(])\s+/g,"$1");
 }
 
 function rebuildSentenceSelect(){
@@ -225,8 +240,6 @@ function setCurrent(item, opts={}){
   $("#meta").textContent=current.label+" · "+current.num;
   $("#pos").textContent=`${index+1} / ${pool.length}`;
   $("#prompt").innerHTML=renderPrompt(current);
-  $("#answerText").textContent=current.text;
-  $("#answerBox").classList.remove("show");
   $("#answerBtn").textContent="답 보기";
   if(idx>=0) $("#sentenceSelect").value=String(idx);
 }
@@ -244,9 +257,12 @@ function resetCurrent(){
 }
 
 function toggleAnswer(){
-  const box=$("#answerBox");
-  box.classList.toggle("show");
-  $("#answerBtn").textContent=box.classList.contains("show")?"답 숨기기":"답 보기";
+  const tapes=[...$("#prompt").querySelectorAll(".tape")];
+  if(!tapes.length)return;
+  const allOpen=tapes.every(t=>t.classList.contains("revealed"));
+
+  tapes.forEach(t=>t.classList.toggle("revealed",!allOpen));
+  $("#answerBtn").textContent=allOpen ? "답 보기" : "다시 가리기";
 }
 
 function next(){
@@ -333,6 +349,22 @@ function openFullText(){
   const cur=$("#fullText .current");
   if(cur) setTimeout(()=>cur.scrollIntoView({block:"center"}),50);
 }
+
+
+$("#prompt").addEventListener("click",e=>{
+  const tape=e.target.closest(".tape");
+  if(!tape)return;
+  tape.classList.toggle("revealed");
+  const tapes=[...$("#prompt").querySelectorAll(".tape")];
+  $("#answerBtn").textContent=tapes.length && tapes.every(t=>t.classList.contains("revealed"))
+    ? "다시 가리기" : "답 보기";
+});
+$("#prompt").addEventListener("keydown",e=>{
+  if((e.key==="Enter"||e.key===" ") && e.target.classList.contains("tape")){
+    e.preventDefault();
+    e.target.click();
+  }
+});
 
 $("#answerBtn").onclick=toggleAnswer;
 $("#nextBtn").onclick=next;
